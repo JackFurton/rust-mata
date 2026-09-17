@@ -1,0 +1,23 @@
+[workspace]
+resolver = "3"
+members = ["kernel"]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/JackFurton/rust-mata"
+
+# Bare-metal builds have no unwinder and no second chance at a bad optimisation,
+# so both profiles keep overflow checks and full debug info in the ELF. Neither
+# costs flash: debug info is stripped by the loader, checks are cheap traps.
+[profile.dev]
+panic = "abort"
+opt-level = 1
+
+[profile.release]
+panic = "abort"
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+debug = 2
+overflow-checks = true

@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup show && rustup target add thumbv7m-none-eabi
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo build --release
+
+  boot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup show && rustup target add thumbv7m-none-eabi
+      - uses: Swatinem/rust-cache@v2
+      - run: sudo apt-get update && sudo apt-get install -y qemu-system-arm
+      # QEMU writes semihosting output to stderr, so the log has to capture both
+      # streams. cargo run also exits with the kernel's own semihosting exit
+      # code, which is checked separately: a panic or a fault fails the job even
+      # if the expected lines were printed first.
+      - name: Boot under QEMU
+        shell: bash
+        run: |
+          set +e
+          timeout 60 cargo run --release 2>&1 | tee boot.log
+          status=${PIPESTATUS[0]}
+          set -e
+          grep -q '\.data  0xc0ffee00' boot.log
+          grep -q '\.bss   0x00000000' boot.log
+          test "$status" -eq 0
