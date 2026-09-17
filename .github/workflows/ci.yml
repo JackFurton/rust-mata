@@ -32,6 +32,13 @@ jobs:
       - name: Boot under QEMU
         shell: bash
         run: |
+          qemu-system-arm --version | head -1
+          set +e
           timeout 60 cargo run --release | tee boot.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "kernel exit status: $status"
           grep -q '\.data  0xc0ffee00' boot.log
           grep -q '\.bss   0x00000000' boot.log
+          echo "greps ok"
+          test "$status" -eq 0
