@@ -1,6 +1,6 @@
 //! Reset path: vector table, RAM initialisation, entry into the kernel.
 
-use crate::debug;
+use crate::fault::fault_entry;
 
 unsafe extern "C" {
     static mut __sbss: u32;
@@ -28,20 +28,20 @@ static RESET_VECTOR: unsafe extern "C" fn() -> ! = reset;
 #[unsafe(link_section = ".vector_table.exceptions")]
 #[rustfmt::skip]
 static EXCEPTIONS: [Vector; 14] = [
-    Vector { handler: nmi },         //  2 NMI
-    Vector { handler: hard_fault },  //  3 HardFault
-    Vector { handler: mem_manage },  //  4 MemManage
-    Vector { handler: bus_fault },   //  5 BusFault
-    Vector { handler: usage_fault }, //  6 UsageFault
+    Vector { handler: fault_entry }, //  2 NMI
+    Vector { handler: fault_entry }, //  3 HardFault
+    Vector { handler: fault_entry }, //  4 MemManage
+    Vector { handler: fault_entry }, //  5 BusFault
+    Vector { handler: fault_entry }, //  6 UsageFault
     Vector { reserved: 0 },          //  7
     Vector { reserved: 0 },          //  8
     Vector { reserved: 0 },          //  9
     Vector { reserved: 0 },          // 10
-    Vector { handler: sv_call },     // 11 SVCall
+    Vector { handler: fault_entry }, // 11 SVCall
     Vector { reserved: 0 },          // 12
     Vector { reserved: 0 },          // 13
-    Vector { handler: pend_sv },     // 14 PendSV
-    Vector { handler: sys_tick },    // 15 SysTick
+    Vector { handler: fault_entry }, // 14 PendSV
+    Vector { handler: fault_entry }, // 15 SysTick
 ];
 
 /// First instruction executed after reset, with SP already loaded from the
@@ -64,29 +64,3 @@ unsafe extern "C" fn reset() -> ! {
 
     crate::kernel_main()
 }
-
-/// Spin with the core clock-gated rather than resetting, so a debugger
-/// attaching after the fault still finds the stack and registers intact.
-fn halt() -> ! {
-    loop {
-        unsafe { core::arch::asm!("wfi", options(nomem, nostack)) };
-    }
-}
-
-macro_rules! fault_handler {
-    ($name:ident, $label:literal) => {
-        unsafe extern "C" fn $name() {
-            debug::println(concat!("fault: ", $label));
-            halt();
-        }
-    };
-}
-
-fault_handler!(nmi, "NMI");
-fault_handler!(hard_fault, "HardFault");
-fault_handler!(mem_manage, "MemManage");
-fault_handler!(bus_fault, "BusFault");
-fault_handler!(usage_fault, "UsageFault");
-fault_handler!(sv_call, "SVCall (unhandled)");
-fault_handler!(pend_sv, "PendSV (unhandled)");
-fault_handler!(sys_tick, "SysTick (unhandled)");

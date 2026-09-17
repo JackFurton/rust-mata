@@ -10,3 +10,6 @@ name = "mata"
 path = "src/main.rs"
 test = false
 bench = false
+
+[features]
+fault-demo = []

@@ -33,8 +33,10 @@ arm-none-eabi-gdb -ex 'target remote :3333' target/thumbv7m-none-eabi/debug/mata
 .cargo/config.toml   target triple + QEMU runner
 kernel/link.x        memory map, vector table placement, section layout
 kernel/build.rs      hands link.x to the linker
-kernel/src/boot.rs   vector table, reset handler, fault handlers
+kernel/src/boot.rs   vector table, reset handler
+kernel/src/fault.rs  exception entry and fault reporting
 kernel/src/debug.rs  semihosting output and exit
+kernel/src/demo.rs   deliberate faults, behind --features fault-demo
 ```
 
 ## Roadmap
