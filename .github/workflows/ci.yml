@@ -26,19 +26,17 @@ jobs:
       - run: rustup show && rustup target add thumbv7m-none-eabi
       - uses: Swatinem/rust-cache@v2
       - run: sudo apt-get update && sudo apt-get install -y qemu-system-arm
-      # cargo run exits with the kernel's semihosting exit code, so a panic or a
-      # fault fails the job on its own. The greps catch a boot that reports
-      # success while leaving RAM wrong.
+      # QEMU writes semihosting output to stderr, so the log has to capture both
+      # streams. cargo run also exits with the kernel's own semihosting exit
+      # code, which is checked separately: a panic or a fault fails the job even
+      # if the expected lines were printed first.
       - name: Boot under QEMU
         shell: bash
         run: |
-          qemu-system-arm --version | head -1
           set +e
-          timeout 60 cargo run --release | tee boot.log
+          timeout 60 cargo run --release 2>&1 | tee boot.log
           status=${PIPESTATUS[0]}
           set -e
-          echo "kernel exit status: $status"
           grep -q '\.data  0xc0ffee00' boot.log
           grep -q '\.bss   0x00000000' boot.log
-          echo "greps ok"
           test "$status" -eq 0
