@@ -17,6 +17,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all --check
       - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo clippy --all-targets --features fault-demo -- -D warnings
       - run: cargo build --release
 
   boot:
@@ -39,4 +40,18 @@ jobs:
           set -e
           grep -q '\.data  0xc0ffee00' boot.log
           grep -q '\.bss   0x00000000' boot.log
+          test "$status" -eq 0
+      # The fixture faults on purpose and the report decides the exit status, so
+      # a report that points at the wrong instruction fails the job.
+      - name: Report a deliberate fault
+        shell: bash
+        run: |
+          set +e
+          timeout 60 cargo run --release --features fault-demo 2>&1 | tee fault.log
+          status=${PIPESTATUS[0]}
+          set -e
+          grep -q 'fault: HardFault (exception 3)' fault.log
+          grep -q 'hfsr  0x40000000 forced' fault.log
+          grep -q 'cfsr  0x00010000 undefinstr' fault.log
+          grep -q 'demo: pc matches fault_site' fault.log
           test "$status" -eq 0

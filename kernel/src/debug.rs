@@ -53,9 +53,7 @@ pub fn exit(code: u32) -> ! {
     unsafe { call(SYS_EXIT_EXTENDED, &raw const block as u32) };
 
     // Reached only when nothing is listening for the exit request.
-    loop {
-        unsafe { core::arch::asm!("wfi", options(nomem, nostack)) };
-    }
+    crate::fault::halt()
 }
 
 #[macro_export]

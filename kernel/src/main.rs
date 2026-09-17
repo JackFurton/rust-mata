@@ -3,7 +3,11 @@
 
 mod boot;
 mod debug;
+mod fault;
 mod panic;
+
+#[cfg(feature = "fault-demo")]
+mod demo;
 
 /// Witnesses for the two halves of RAM setup. Read volatile so the compiler
 /// cannot fold them back into the constants it can see here: the point is to
@@ -19,5 +23,9 @@ fn kernel_main() -> ! {
     kprintln!("  .data  {initialised:#010x} (expect 0xc0ffee00)");
     kprintln!("  .bss   {zeroed:#010x} (expect 0x00000000)");
 
+    #[cfg(feature = "fault-demo")]
+    demo::fault_site();
+
+    #[cfg(not(feature = "fault-demo"))]
     debug::exit(0)
 }
